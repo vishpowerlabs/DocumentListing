@@ -1,78 +1,150 @@
+@import '~@microsoft/sp-office-ui-fabric-core/dist/sass/SPFabricCore.scss';
+
+.documentListing {
+  overflow: hidden;
+  padding: 1em;
+  color: "[theme:bodyText, default: #323130]";
+  color: var(--bodyText);
+}
+
 .container {
   display: flex;
   height: 100%;
+  background: "[theme:bodyBackground, default: #ffffff]";
   background: var(--bodyBackground);
+  color: "[theme:bodyText, default: #323130]";
   color: var(--bodyText);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 }
 
 .leftNav {
   width: 220px;
+  background: "[theme:neutralLighter, default: #f3f2f1]";
   background: var(--neutralLighter);
+  border-right: 1px solid "[theme:neutralLight, default: #edebe9]";
   border-right: 1px solid var(--neutralLight);
+
+  @media (max-width: 768px) {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--neutralLight);
+    -webkit-overflow-scrolling: touch;
+
+    /* Hide scrollbar for cleaner look if desired, or keep it */
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+  }
 }
 
 .categoryItem {
   padding: 12px;
   cursor: pointer;
+  border-bottom: 1px solid "[theme:neutralLight, default: #edebe9]";
   border-bottom: 1px solid var(--neutralLight);
 
   &:hover {
+    background: "[theme:neutralLight, default: #edebe9]";
     background: var(--neutralLight);
+  }
+
+  @media (max-width: 768px) {
+    flex: 0 0 auto;
+    /* Don't shrink */
+    white-space: nowrap;
+    border-bottom: none;
+    border-right: 1px solid var(--neutralLight);
+    padding: 10px 16px;
   }
 }
 
 .categoryActive {
-  background: var(--bodyBackground); // or keep neutralLighter but distinguishable?
-  // Let's make it look active like the tabs
+  background: "[theme:bodyBackground, default: #ffffff]";
+  background: var(--bodyBackground);
   font-weight: 700;
+  border-left: 4px solid "[theme:themePrimary, default: #0078d4]";
   border-left: 4px solid var(--themePrimary);
-  background: var(--white); // contrast against neutralLighter nav
+
+  @media (max-width: 768px) {
+    border-left: none;
+    border-bottom: 4px solid var(--themePrimary);
+  }
 }
 
 .content {
   flex: 1;
   padding: 16px;
+  /* Ensure content doesn't overflow flex parent */
+  min-width: 0;
 }
 
 .subCategoryTabs {
   display: flex;
   margin-bottom: 12px;
+  border-bottom: 2px solid "[theme:neutralLight, default: #edebe9]";
   border-bottom: 2px solid var(--neutralLight);
+
+  /* Allow wrapping on small screens */
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .subTab {
   padding: 10px 16px;
   cursor: pointer;
+  background: "[theme:neutralLighter, default: #f3f2f1]";
   background: var(--neutralLighter);
+  border: 1px solid "[theme:neutralLight, default: #edebe9]";
   border: 1px solid var(--neutralLight);
   border-bottom: none;
   margin-right: 6px;
 
   &:hover {
+    background: "[theme:neutralLight, default: #edebe9]";
     background: var(--neutralLight);
   }
 }
 
 .active {
+  background: "[theme:bodyBackground, default: #ffffff]";
   background: var(--bodyBackground);
+  border-top: 3px solid "[theme:themePrimary, default: #0078d4]";
   border-top: 3px solid var(--themePrimary);
+  color: "[theme:themePrimary, default: #0078d4]";
   color: var(--themePrimary);
   font-weight: 600;
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 10px;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px;
+  /* Force scroll on very narrow screens if needed */
 
   th {
+    background: "[theme:themePrimary, default: #0078d4]";
     background: var(--themePrimary);
     color: #fff;
     padding: 10px;
     text-align: left;
+    white-space: nowrap;
   }
 
   td {
     padding: 10px;
+    border-bottom: 1px solid "[theme:neutralLight, default: #edebe9]";
     border-bottom: 1px solid var(--neutralLight);
   }
 }
@@ -83,6 +155,7 @@
 
 .mailIcon {
   font-size: 24px;
+  color: "[theme:themePrimary, default: #0078d4]";
   color: var(--themePrimary);
   text-decoration: none;
   display: inline-block;
@@ -103,22 +176,28 @@
     font-size: 14px;
     color: var(--bodyText);
   }
+
+  @media (max-width: 480px) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 .pageButton {
-  padding: 6px 12px;
+  padding: 5px 10px;
   cursor: pointer;
-  background: var(--neutralLighter);
   border: 1px solid var(--neutralLight);
-  border-radius: 4px;
-  color: var(--bodyText);
-
-  &:hover:not(:disabled) {
-    background: var(--neutralLight);
-  }
+  background: var(--neutralLighter);
+  margin: 0 2px;
 
   &:disabled {
-    opacity: 0.5;
     cursor: default;
+    opacity: 0.5;
+  }
+
+  &.active {
+    // Assuming you might add this active class later or use disabled for active
+    font-weight: bold;
+    border-color: var(--themePrimary);
   }
 }

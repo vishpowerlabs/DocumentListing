@@ -108,17 +108,19 @@ export default class DocumentListingWebPart
           <div class="${styles.content}">
             <div class="${styles.subCategoryTabs}" id="subTabs"></div>
 
-            <table class="${styles.table}">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Description</th>
-                  <th class="${styles.centerAlign}">Date Modified</th>
-                  <th class="${styles.centerAlign}">Request Access</th>
-                </tr>
-              </thead>
-              <tbody id="docRows"></tbody>
-            </table>
+            <div class="${styles.tableWrapper}">
+              <table class="${styles.table}">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th class="${styles.centerAlign}">Date Modified</th>
+                    <th class="${styles.centerAlign}">Request Access</th>
+                  </tr>
+                </thead>
+                <tbody id="docRows"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       `;
