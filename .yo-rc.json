@@ -1,0 +1,19 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "useGulp": false,
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "20.12.2",
+    "sdksVersions": {},
+    "version": "1.22.0",
+    "libraryName": "document-listing",
+    "libraryId": "215e1b61-1db5-4911-bfdf-68191d3658de",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "document-listing",
+    "solutionShortDescription": "document-listing description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

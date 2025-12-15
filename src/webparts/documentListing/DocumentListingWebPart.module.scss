@@ -1,0 +1,124 @@
+.container {
+  display: flex;
+  height: 100%;
+  background: var(--bodyBackground);
+  color: var(--bodyText);
+}
+
+.leftNav {
+  width: 220px;
+  background: var(--neutralLighter);
+  border-right: 1px solid var(--neutralLight);
+}
+
+.categoryItem {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--neutralLight);
+
+  &:hover {
+    background: var(--neutralLight);
+  }
+}
+
+.categoryActive {
+  background: var(--bodyBackground); // or keep neutralLighter but distinguishable?
+  // Let's make it look active like the tabs
+  font-weight: 700;
+  border-left: 4px solid var(--themePrimary);
+  background: var(--white); // contrast against neutralLighter nav
+}
+
+.content {
+  flex: 1;
+  padding: 16px;
+}
+
+.subCategoryTabs {
+  display: flex;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--neutralLight);
+}
+
+.subTab {
+  padding: 10px 16px;
+  cursor: pointer;
+  background: var(--neutralLighter);
+  border: 1px solid var(--neutralLight);
+  border-bottom: none;
+  margin-right: 6px;
+
+  &:hover {
+    background: var(--neutralLight);
+  }
+}
+
+.active {
+  background: var(--bodyBackground);
+  border-top: 3px solid var(--themePrimary);
+  color: var(--themePrimary);
+  font-weight: 600;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    background: var(--themePrimary);
+    color: #fff;
+    padding: 10px;
+    text-align: left;
+  }
+
+  td {
+    padding: 10px;
+    border-bottom: 1px solid var(--neutralLight);
+  }
+}
+
+.centerAlign {
+  text-align: center !important;
+}
+
+.mailIcon {
+  font-size: 24px;
+  color: var(--themePrimary);
+  text-decoration: none;
+  display: inline-block;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.paginationContainer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 16px;
+  gap: 10px;
+
+  span {
+    font-size: 14px;
+    color: var(--bodyText);
+  }
+}
+
+.pageButton {
+  padding: 6px 12px;
+  cursor: pointer;
+  background: var(--neutralLighter);
+  border: 1px solid var(--neutralLight);
+  border-radius: 4px;
+  color: var(--bodyText);
+
+  &:hover:not(:disabled) {
+    background: var(--neutralLight);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
