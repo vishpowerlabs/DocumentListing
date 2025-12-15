@@ -82,7 +82,7 @@ export default class DocumentService {
     }
   }
 
-  public async createRequest(listId: string, itemData: any): Promise<void> {
+  public async createRequest(listId: string, itemData: Record<string, any>): Promise<void> {
     const url = `${this.siteUrl}/_api/web/lists(guid'${listId}')/items`;
 
     const body = JSON.stringify(itemData);
@@ -111,7 +111,7 @@ export default class DocumentService {
     emailCol: string,
     emailVal: string,
     selectCols: string[]
-  ): Promise<any> {
+  ): Promise<Record<string, any> | null> {
     const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listId);
 
     // Filter by File ID and Email
@@ -133,7 +133,7 @@ export default class DocumentService {
     return (json.value && json.value.length > 0) ? json.value[0] : null;
   }
 
-  public async updateRequest(listId: string, itemId: number, itemData: any): Promise<void> {
+  public async updateRequest(listId: string, itemId: number, itemData: Record<string, any>): Promise<void> {
     const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listId);
     let url = '';
 
@@ -204,7 +204,7 @@ export default class DocumentService {
 
     const json = await response.json();
 
-    return json.value.map((i: any) => {
+    return json.value.map((i: Record<string, any>) => {
       const item: IDocumentItem = {
         Title: i.Title,
         Category: i[categoryColumn],

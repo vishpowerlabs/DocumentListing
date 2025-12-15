@@ -50,7 +50,8 @@ export default class DocumentListingWebPart
 
   private _handleThemeChanged(args: ThemeChangedEventArgs): void {
     this.themeVariant = args.theme;
-    this.render();
+    // Trigger render
+    void (async () => { this.render(); })().catch(err => { console.error(err); });
   }
 
   public async render(): Promise<void> {
@@ -133,7 +134,7 @@ export default class DocumentListingWebPart
         const firstCatEl = this.domElement.querySelector(`.${styles.categoryItem}[data-category="${categories[0]}"]`);
         if (firstCatEl) {
           firstCatEl.classList.add(styles.categoryActive);
-          this.loadSubCategories(categories[0]);
+          void this.loadSubCategories(categories[0]);
         }
       }
 
@@ -163,7 +164,7 @@ export default class DocumentListingWebPart
           (e.currentTarget as HTMLElement).classList.add(styles.categoryActive);
 
           const category = (e.currentTarget as HTMLElement).dataset.category!;
-          this.loadSubCategories(category);
+          void this.loadSubCategories(category);
         });
       });
   }
@@ -283,7 +284,7 @@ export default class DocumentListingWebPart
 
     // Bind Request Access Buttons
     this.domElement.querySelectorAll('.request-access-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => this.handleRequestAccess(e));
+      btn.addEventListener('click', (e) => { void this.handleRequestAccess(e); });
     });
 
     // Render Pagination Controls
@@ -297,7 +298,7 @@ export default class DocumentListingWebPart
     }
 
     if (totalPages > 1) {
-      let pagHtml = `
+      const pagHtml = `
           <button class="${styles.pageButton}" id="btnPrev" ${this.currentPage === 1 ? 'disabled' : ''}>Prev</button>
           <span>Page ${this.currentPage} of ${totalPages}</span>
           <button class="${styles.pageButton}" id="btnNext" ${this.currentPage === totalPages ? 'disabled' : ''}>Next</button>
@@ -341,8 +342,16 @@ export default class DocumentListingWebPart
       return;
     }
 
+    await this.processAccessRequest(fileId, this.context.pageContext.user.email);
+  }
+
+  private async processAccessRequest(fileId: string | undefined, userEmail: string): Promise<void> {
+    if (!fileId) {
+      alert('File ID not found for request.');
+      return;
+    }
+
     try {
-      const userEmail = this.context.pageContext.user.email;
       const listId = this.properties.inputListId;
       const fileIdField = this.properties.inputFieldFileId;
       const emailField = this.properties.inputFieldEmail;
@@ -364,8 +373,8 @@ export default class DocumentListingWebPart
 
         if (existingItem) {
           // Update existing
-          const currentCount = existingItem[countField] ? parseInt(existingItem[countField]) : 0;
-          newCount = (isNaN(currentCount) ? 0 : currentCount) + 1;
+          const currentCount = existingItem[countField] ? Number.parseInt(existingItem[countField]) : 0;
+          newCount = (Number.isNaN(currentCount) ? 0 : currentCount) + 1;
 
           await this.service.updateRequest(listId, existingItem.Id, {
             [countField]: newCount
