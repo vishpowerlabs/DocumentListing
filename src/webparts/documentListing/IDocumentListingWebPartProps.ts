@@ -8,4 +8,5 @@ export interface IDocumentListingWebPartProps {
   inputListId: string;
   inputFieldFileId: string;
   inputFieldEmail: string;
+  inputFieldDownloadCount: string;
 }

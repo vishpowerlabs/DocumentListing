@@ -333,6 +333,7 @@ export default class DocumentListingWebPart
 
   private async handleRequestAccess(e: Event): Promise<void> {
     const fileId = (e.currentTarget as HTMLElement).dataset.id;
+    // Note: Download Count field is optional for now, but if configured we use it.
     if (!this.properties.inputListId || !this.properties.inputFieldFileId || !this.properties.inputFieldEmail) {
       alert('Please configure the Request Access settings in the Web Part properties.');
       return;
@@ -340,14 +341,58 @@ export default class DocumentListingWebPart
 
     try {
       const userEmail = this.context.pageContext.user.email;
-      const payload: any = {};
-      payload[this.properties.inputFieldFileId] = fileId; // Store as text/string usually
-      payload[this.properties.inputFieldEmail] = userEmail;
-      // Optionally add Title if required by list, mapped to something generic
-      // But strict req was: value for row based on pressed request access, current id of file, email value logged in user
+      const listId = this.properties.inputListId;
+      const fileIdField = this.properties.inputFieldFileId;
+      const emailField = this.properties.inputFieldEmail;
+      const countField = this.properties.inputFieldDownloadCount;
 
-      await this.service.createRequest(this.properties.inputListId, payload);
-      alert('Access request submitted successfully!');
+      let createdNew = false;
+      let newCount = 1;
+
+      if (countField) {
+        // Check for existing request
+        const existingItem = await this.service.getExistingRequest(
+          listId,
+          fileIdField,
+          fileId,
+          emailField,
+          userEmail,
+          [countField]
+        );
+
+        if (existingItem) {
+          // Update existing
+          const currentCount = existingItem[countField] ? parseInt(existingItem[countField]) : 0;
+          newCount = (isNaN(currentCount) ? 0 : currentCount) + 1;
+
+          await this.service.updateRequest(listId, existingItem.Id, {
+            [countField]: newCount
+          });
+        } else {
+          // Create new with count 1
+          createdNew = true;
+          const payload: any = {};
+          payload[fileIdField] = fileId;
+          payload[emailField] = userEmail;
+          payload[countField] = 1; // Start at 1
+
+          await this.service.createRequest(listId, payload);
+        }
+      } else {
+        // Legacy behavior: Always create new if count field not configured
+        createdNew = true;
+        const payload: any = {};
+        payload[fileIdField] = fileId;
+        payload[emailField] = userEmail;
+
+        await this.service.createRequest(listId, payload);
+      }
+
+      if (countField && !createdNew) {
+        alert(`Request updated. Total requests: ${newCount}`);
+      } else {
+        alert('Access request submitted successfully!');
+      }
     } catch (err: any) {
       alert(`Failed to submit request: ${err.message || err}`);
     }
@@ -409,6 +454,7 @@ export default class DocumentListingWebPart
 
       this.properties.inputFieldFileId = '';
       this.properties.inputFieldEmail = '';
+      this.properties.inputFieldDownloadCount = '';
 
       await this.loadRequestColumns(newValue);
       this.requestColumnsDropdownDisabled = false;
@@ -443,7 +489,7 @@ export default class DocumentListingWebPart
     fieldInfos.sort((a, b) => (a.Title || a.InternalName).localeCompare(b.Title || b.InternalName));
 
     // We might want to filter out ReadOnly for writing, but let's show all just in case
-    // to resolve the "missing column" issue. 
+    // to resolve the "missing column" issue.
     // Note: We fetched ReadOnlyField property in service now. We could use it:
     // const editableFields = fieldInfos.filter(f => !f.ReadOnlyField);
     // But let's stick to showing all for maximum flexibility unless user complains of clutter.
@@ -506,6 +552,11 @@ export default class DocumentListingWebPart
             }),
             PropertyPaneDropdown('inputFieldEmail', {
               label: 'Column for User Email',
+              options: this.requestColumns,
+              disabled: this.requestColumnsDropdownDisabled
+            }),
+            PropertyPaneDropdown('inputFieldDownloadCount', {
+              label: 'Column for Download Count',
               options: this.requestColumns,
               disabled: this.requestColumnsDropdownDisabled
             })

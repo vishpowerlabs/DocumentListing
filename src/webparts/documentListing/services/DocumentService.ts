@@ -104,6 +104,71 @@ export default class DocumentService {
     }
   }
 
+  public async getExistingRequest(
+    listId: string,
+    fileIdCol: string,
+    fileIdVal: string,
+    emailCol: string,
+    emailVal: string,
+    selectCols: string[]
+  ): Promise<any> {
+    const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listId);
+
+    // Filter by File ID and Email
+    // Note: Assuming File ID is Text. If Number, remove quotes around fileIdVal. 
+    // Usually standard practice is to use Text for "Ref ID" columns to be safe, but let's assume Text for now as per previous implementation.
+    const filter = `${fileIdCol} eq '${fileIdVal}' and ${emailCol} eq '${emailVal}'`;
+    const select = selectCols.join(',');
+
+    let url = '';
+    if (isGuid) {
+      url = `${this.siteUrl}/_api/web/lists(guid'${listId}')/items?$filter=${filter}&$select=Id,${select}`;
+    } else {
+      url = `${this.siteUrl}/_api/web/lists/getbytitle('${listId}')/items?$filter=${filter}&$select=Id,${select}`;
+    }
+
+    const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
+    const json = await response.json();
+
+    return (json.value && json.value.length > 0) ? json.value[0] : null;
+  }
+
+  public async updateRequest(listId: string, itemId: number, itemData: any): Promise<void> {
+    const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listId);
+    let url = '';
+
+    if (isGuid) {
+      url = `${this.siteUrl}/_api/web/lists(guid'${listId}')/items(${itemId})`;
+    } else {
+      url = `${this.siteUrl}/_api/web/lists/getbytitle('${listId}')/items(${itemId})`;
+    }
+
+    const body = JSON.stringify(itemData);
+
+    const options: ISPHttpClientOptions = {
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'Content-Type': 'application/json;odata=nometadata',
+        'OData-Version': '',
+        'IF-MATCH': '*',
+        'X-HTTP-Method': 'MERGE'
+      },
+      body: body
+    };
+
+    const response: SPHttpClientResponse = await this.spHttpClient.post(url, SPHttpClient.configurations.v1, options);
+
+    if (!response.ok) {
+      // Try to parse error if possible, or throw status text
+      try {
+        const error = await response.json();
+        throw new Error(error.error ? error.error.message.value : response.statusText);
+      } catch {
+        throw new Error(response.statusText);
+      }
+    }
+  }
+
   public async getDocuments(
     library: string,
     categoryColumn: string,
