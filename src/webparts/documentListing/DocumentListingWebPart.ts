@@ -128,7 +128,7 @@ export default class DocumentListingWebPart
               <div class="${styles.tableContainer}">
                 <div class="${styles.tableHeader}">
                   <div class="${styles.headerCell} ${styles.colTitle}">Title</div>
-                  ${this.properties.descriptionColumn ? `<div class="${styles.headerCell} ${styles.colDesc}">Description</div>` : `<div class="${styles.headerCell} ${styles.colDesc}">Description</div>`}
+                  <div class="${styles.headerCell} ${styles.colDesc}">Description</div>
                   <div class="${styles.headerCell} ${styles.colDate}">Date</div>
                   <div class="${styles.headerCell} ${styles.colAction}">Request Access</div>
                 </div>
