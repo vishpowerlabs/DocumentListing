@@ -12,7 +12,7 @@ export interface IDocumentItem {
   FileRef: string;
   Modified: string;
   Id: number;
-  [key: string]: any; // Allow dynamic fields
+  [key: string]: unknown; // Allow dynamic fields
 }
 
 export interface IListInfo {
@@ -23,12 +23,14 @@ export interface IListInfo {
 export interface IFieldInfo {
   InternalName: string;
   Title: string;
+  ReadOnlyField: boolean;
+  TypeAsString: string;
 }
 
 export default class DocumentService {
   constructor(
-    private spHttpClient: SPHttpClient,
-    private siteUrl: string
+    private readonly spHttpClient: SPHttpClient,
+    private readonly siteUrl: string
   ) { }
 
   public async getLists(baseTemplate: number = 101): Promise<IListInfo[]> {
@@ -45,9 +47,9 @@ export default class DocumentService {
     let url = '';
 
     if (isGuid) {
-      url = `${this.siteUrl}/_api/web/lists(guid'${listId}')/Fields?$filter=Hidden eq false or CanBeDeleted eq true&$select=Title,InternalName,ReadOnlyField`;
+      url = `${this.siteUrl}/_api/web/lists(guid'${listId}')/Fields?$filter=Hidden eq false or CanBeDeleted eq true&$select=Title,InternalName,ReadOnlyField,TypeAsString`;
     } else {
-      url = `${this.siteUrl}/_api/web/lists/getbytitle('${listId}')/Fields?$filter=Hidden eq false or CanBeDeleted eq true&$select=Title,InternalName,ReadOnlyField`;
+      url = `${this.siteUrl}/_api/web/lists/getbytitle('${listId}')/Fields?$filter=Hidden eq false or CanBeDeleted eq true&$select=Title,InternalName,ReadOnlyField,TypeAsString`;
     }
 
     const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
@@ -82,7 +84,7 @@ export default class DocumentService {
     }
   }
 
-  public async createRequest(listId: string, itemData: Record<string, any>): Promise<void> {
+  public async createRequest(listId: string, itemData: Record<string, unknown>): Promise<void> {
     const url = `${this.siteUrl}/_api/web/lists(guid'${listId}')/items`;
 
     const body = JSON.stringify(itemData);
@@ -111,11 +113,11 @@ export default class DocumentService {
     emailCol: string,
     emailVal: string,
     selectCols: string[]
-  ): Promise<Record<string, any> | null> {
+  ): Promise<Record<string, unknown> | undefined> {
     const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listId);
 
     // Filter by File ID and Email
-    // Note: Assuming File ID is Text. If Number, remove quotes around fileIdVal. 
+    // Note: Assuming File ID is Text. If Number, remove quotes around fileIdVal.
     // Usually standard practice is to use Text for "Ref ID" columns to be safe, but let's assume Text for now as per previous implementation.
     const filter = `${fileIdCol} eq '${fileIdVal}' and ${emailCol} eq '${emailVal}'`;
     const select = selectCols.join(',');
@@ -130,10 +132,10 @@ export default class DocumentService {
     const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
     const json = await response.json();
 
-    return (json.value && json.value.length > 0) ? json.value[0] : null;
+    return (json.value && json.value.length > 0) ? json.value[0] : undefined;
   }
 
-  public async updateRequest(listId: string, itemId: number, itemData: Record<string, any>): Promise<void> {
+  public async updateRequest(listId: string, itemId: number, itemData: Record<string, unknown>): Promise<void> {
     const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(listId);
     let url = '';
 
@@ -204,14 +206,14 @@ export default class DocumentService {
 
     const json = await response.json();
 
-    return json.value.map((i: Record<string, any>) => {
+    return json.value.map((i: Record<string, unknown>) => {
       const item: IDocumentItem = {
-        Title: i.Title,
-        Category: i[categoryColumn],
-        SubCategory: i[subCategoryColumn],
-        FileRef: i.FileRef,
-        Modified: i.Modified,
-        Id: i.Id
+        Title: i.Title as string,
+        Category: i[categoryColumn] as string,
+        SubCategory: i[subCategoryColumn] as string,
+        FileRef: i.FileRef as string,
+        Modified: i.Modified as string,
+        Id: i.Id as number
       };
 
       // Map dynamic fields

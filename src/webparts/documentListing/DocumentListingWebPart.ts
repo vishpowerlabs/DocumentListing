@@ -1,10 +1,12 @@
 import {
-  BaseClientSideWebPart,
+  BaseClientSideWebPart
+} from '@microsoft/sp-webpart-base';
+import {
   IPropertyPaneConfiguration,
   PropertyPaneDropdown,
   PropertyPaneSlider,
   IPropertyPaneDropdownOption
-} from '@microsoft/sp-webpart-base';
+} from '@microsoft/sp-property-pane';
 
 import {
   ThemeProvider,
@@ -31,6 +33,11 @@ export default class DocumentListingWebPart
   private requestColumns: IPropertyPaneDropdownOption[] = []; // Columns for the separate request list
   private listsDropdownDisabled: boolean = true;
   private requestListsDropdownDisabled: boolean = true;
+  // Filtered dropdown options
+  private choiceColumns: IPropertyPaneDropdownOption[] = [];
+  private textColumns: IPropertyPaneDropdownOption[] = [];
+  private requestSimpleColumns: IPropertyPaneDropdownOption[] = [];
+
   private columnsDropdownDisabled: boolean = true;
   private requestColumnsDropdownDisabled: boolean = true;
 
@@ -51,10 +58,14 @@ export default class DocumentListingWebPart
   private _handleThemeChanged(args: ThemeChangedEventArgs): void {
     this.themeVariant = args.theme;
     // Trigger render
-    void (async () => { this.render(); })().catch(err => { console.error(err); });
+    this.render();
   }
 
-  public async render(): Promise<void> {
+  public render(): void {
+    this._renderAsync().catch(err => console.error(err));
+  }
+
+  private async _renderAsync(): Promise<void> {
     if (!this.properties.library) {
       this.domElement.innerHTML = `<p>Please configure the web part.</p>`;
       return;
@@ -89,11 +100,11 @@ export default class DocumentListingWebPart
 
       if (categoryChoices.length === 0) {
         this.items.forEach(i => {
-          if (categories.indexOf(i.Category) === -1 && i.Category) {
+          if (!categories.includes(i.Category) && i.Category) {
             categories.push(i.Category);
           }
         });
-        categories.sort();
+        categories.sort((a, b) => a.localeCompare(b));
       }
 
       this.domElement.innerHTML = `
@@ -110,17 +121,15 @@ export default class DocumentListingWebPart
             <div class="${styles.subCategoryTabs}" id="subTabs"></div>
 
             <div class="${styles.tableWrapper}">
-              <table class="${styles.table}">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Description</th>
-                    <th class="${styles.centerAlign}">Date Modified</th>
-                    <th class="${styles.centerAlign}">Request Access</th>
-                  </tr>
-                </thead>
-                <tbody id="docRows"></tbody>
-              </table>
+              <div class="${styles.tableContainer}">
+                <div class="${styles.tableHeader}">
+                  <div class="${styles.headerCell}">Title</div>
+                  ${this.properties.descriptionColumn ? `<div class="${styles.headerCell}">Description</div>` : `<div class="${styles.headerCell}">Description</div>`}
+                  <div class="${styles.headerCell} ${styles.centerAlign}">Date Modified</div>
+                  <div class="${styles.headerCell} ${styles.centerAlign}">Request Access</div>
+                </div>
+                <div id="docRows"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -134,12 +143,16 @@ export default class DocumentListingWebPart
         const firstCatEl = this.domElement.querySelector(`.${styles.categoryItem}[data-category="${categories[0]}"]`);
         if (firstCatEl) {
           firstCatEl.classList.add(styles.categoryActive);
-          void this.loadSubCategories(categories[0]);
+          const cat = firstCatEl.getAttribute('data-category');
+          if (cat) {
+            this.loadSubCategories(cat).catch(console.error);
+          }
         }
       }
 
     } catch (error) {
-      this.domElement.innerHTML = `<p>Error loading documents: ${error}</p>`;
+      const errorMessage = this.getErrorMessage(error);
+      this.domElement.innerHTML = `<p>Error loading documents: ${errorMessage}</p>`;
     }
   }
 
@@ -163,8 +176,10 @@ export default class DocumentListingWebPart
           // Add active to current
           (e.currentTarget as HTMLElement).classList.add(styles.categoryActive);
 
-          const category = (e.currentTarget as HTMLElement).dataset.category!;
-          void this.loadSubCategories(category);
+          const category = (e.currentTarget as HTMLElement).dataset.category;
+          if (category) {
+            this.loadSubCategories(category).catch(console.error);
+          }
         });
       });
   }
@@ -186,11 +201,11 @@ export default class DocumentListingWebPart
 
     if (subChoices.length === 0) {
       this.items.forEach(i => {
-        if (i.Category === category && subs.indexOf(i.SubCategory) === -1 && i.SubCategory) {
+        if (i.Category === category && !subs.includes(i.SubCategory) && i.SubCategory) {
           subs.push(i.SubCategory);
         }
       });
-      subs.sort();
+      subs.sort((a, b) => a.localeCompare(b));
     }
 
     // If fetching choices, we might list subcategories that don't have items in this category.
@@ -209,7 +224,10 @@ export default class DocumentListingWebPart
       </div>
     `).join('');
 
-    this.domElement.querySelector('#subTabs')!.innerHTML = tabs;
+    const subTabsContainer = this.domElement.querySelector('#subTabs');
+    if (subTabsContainer) {
+      subTabsContainer.innerHTML = tabs;
+    }
 
     this.bindSubCategoryEvents(category);
 
@@ -233,7 +251,10 @@ export default class DocumentListingWebPart
           const el = e.currentTarget as HTMLElement;
           el.classList.add(styles.active);
           this.currentPage = 1; // Reset to page 1 on sub change
-          this.renderTable(category, el.dataset.sub!);
+          const sub = el.dataset.sub;
+          if (sub) {
+            this.renderTable(category, sub);
+          }
         });
       });
   }
@@ -255,37 +276,58 @@ export default class DocumentListingWebPart
     const pagedItems = allFilteredItems.slice(startIndex, endIndex);
 
     const rows = pagedItems.map(i => {
-      // Map fields
-      const title = this.properties.titleColumn ? i[this.properties.titleColumn] : i.Title;
-      const desc = this.properties.descriptionColumn ? i[this.properties.descriptionColumn] : (i.Description || '');
+      let titleVal = this.properties.titleColumn ? i[this.properties.titleColumn] : i.Title;
+      let displayTitle = '';
 
-      // Hardcoded Date Modified
-      let dateStr = '';
-      if (i.Modified) {
-        dateStr = new Date(i.Modified).toLocaleDateString();
+      if (typeof titleVal === 'object' && titleVal !== null) {
+        // Fallback if the selected column returns an object (like a lookup or person field)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        displayTitle = (titleVal as any).Title || (titleVal as any).title || '';
+      } else {
+        // Explicitly handle primitives to avoid linter warnings about object stringification
+        const primitiveVal = titleVal as string | number | boolean | null | undefined;
+        displayTitle = (primitiveVal === null || primitiveVal === undefined) ? '' : String(primitiveVal);
       }
 
-      // Hardcoded Request Access Icon logic with click handler
-      // We render a button-like span
+      let descVal = this.properties.descriptionColumn ? i[this.properties.descriptionColumn] : (i.Description || '');
+      let displayDesc = '';
+
+      if (typeof descVal === 'object' && descVal !== null) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const obj = descVal as any;
+        displayDesc = obj.Description || obj.Title || obj.title || '';
+      } else {
+        const primitiveDesc = descVal as string | number | boolean | null | undefined;
+        displayDesc = (primitiveDesc === null || primitiveDesc === undefined) ? '' : String(primitiveDesc);
+      }
+
       return `
-        <tr>
-          <td>${title || ''}</td>
-          <td>${desc}</td>
-          <td class="${styles.centerAlign}">${dateStr}</td>
-          <td class="${styles.centerAlign}">
-            <span class="${styles.mailIcon} request-access-btn" data-id="${i.Id}" title="Request Access" style="cursor: pointer;">✉</span>
-          </td>
-        </tr>
-      `}).join('');
+        <div class="${styles.tableRow}">
+          <div class="${styles.tableCell}">${displayTitle}</div>
+          <div class="${styles.tableCell}">${displayDesc}</div>
+          <div class="${styles.tableCell} ${styles.centerAlign}">${i.Modified ? new Date(i.Modified).toLocaleDateString() : ''}</div>
+          <div class="${styles.tableCell} ${styles.centerAlign}">
+             <a href="javascript:void(0)"
+                class="${styles.mailIcon} request-access-btn"
+                data-id="${i.Id}">
+               <i class="ms-Icon ms-Icon--Mail" aria-hidden="true"></i>
+             </a>
+          </div>
+        </div>
+      `;
+    }).join('');
 
-    // Render Table Body
-    const tbody = this.domElement.querySelector('#docRows');
-    if (tbody) tbody.innerHTML = rows;
+    const docRowsContainer = this.domElement.querySelector('#docRows');
+    if (docRowsContainer) {
+      docRowsContainer.innerHTML = rows || `<div class="${styles.tableRow}"><div class="${styles.tableCell}">No documents found.</div></div>`;
 
-    // Bind Request Access Buttons
-    this.domElement.querySelectorAll('.request-access-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => { void this.handleRequestAccess(e); });
-    });
+      // Re-bind Request Access Buttons
+      this.domElement.querySelectorAll('.request-access-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          this.handleRequestAccess(e).catch(err => console.error(err));
+        });
+      });
+    }
 
     // Render Pagination Controls
     // We need to inject pagination HTML if it doesn't exist, or update it
@@ -373,16 +415,17 @@ export default class DocumentListingWebPart
 
         if (existingItem) {
           // Update existing
-          const currentCount = existingItem[countField] ? Number.parseInt(existingItem[countField]) : 0;
+          const existingVal = existingItem[countField] as string | undefined;
+          const currentCount = existingVal ? Number.parseInt(existingVal) : 0;
           newCount = (Number.isNaN(currentCount) ? 0 : currentCount) + 1;
 
-          await this.service.updateRequest(listId, existingItem.Id, {
+          await this.service.updateRequest(listId, existingItem.Id as number, {
             [countField]: newCount
           });
         } else {
           // Create new with count 1
           createdNew = true;
-          const payload: any = {};
+          const payload: Record<string, unknown> = {};
           payload[fileIdField] = fileId;
           payload[emailField] = userEmail;
           payload[countField] = 1; // Start at 1
@@ -392,7 +435,7 @@ export default class DocumentListingWebPart
       } else {
         // Legacy behavior: Always create new if count field not configured
         createdNew = true;
-        const payload: any = {};
+        const payload: Record<string, unknown> = {};
         payload[fileIdField] = fileId;
         payload[emailField] = userEmail;
 
@@ -404,12 +447,33 @@ export default class DocumentListingWebPart
       } else {
         alert('Access request submitted successfully!');
       }
-    } catch (err: any) {
-      alert(`Failed to submit request: ${err.message || err}`);
+    } catch (err: unknown) {
+      console.error('Error submitting request:', err);
+      const errorMessage = this.getErrorMessage(err);
+      alert(`Failed to submit request: ${errorMessage}`);
     }
   }
 
-  protected async onPropertyPaneConfigurationStart(): Promise<void> {
+  private getErrorMessage(err: unknown): string {
+    if (err instanceof Error) {
+      return err.message;
+    } else if (typeof err === 'string') {
+      return err;
+    } else if (typeof err === 'object' && err !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (err as any).message || JSON.stringify(err);
+    } else {
+      // Primitive types or unknown that is not an object/null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return String(err as any);
+    }
+  }
+
+  protected onPropertyPaneConfigurationStart(): void {
+    this._onPropertyPaneConfigurationStartAsync().catch(err => console.error(err));
+  }
+
+  private async _onPropertyPaneConfigurationStartAsync(): Promise<void> {
     this.listsDropdownDisabled = !this.lists || this.lists.length === 0;
     this.requestListsDropdownDisabled = !this.requestLists || this.requestLists.length === 0;
     this.columnsDropdownDisabled = !this.properties.library || !this.columns || this.columns.length === 0;
@@ -441,7 +505,13 @@ export default class DocumentListingWebPart
     }
   }
 
-  protected async onPropertyPaneFieldChanged(propertyPath: string, oldValue: any, newValue: any): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected onPropertyPaneFieldChanged(propertyPath: string, oldValue: any, newValue: any): void {
+    this._onPropertyPaneFieldChangedAsync(propertyPath, oldValue, newValue).catch(err => console.error(err));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async _onPropertyPaneFieldChangedAsync(propertyPath: string, oldValue: any, newValue: any): Promise<void> {
     if (propertyPath === 'library' && newValue) {
       this.properties.library = newValue;
       this.columnsDropdownDisabled = true;
@@ -485,27 +555,51 @@ export default class DocumentListingWebPart
     this.requestLists = listInfos.map(l => ({ key: l.Id, text: l.Title }));
   }
 
+
+
   private async loadColumns(listId: string): Promise<void> {
     const fieldInfos = await this.service.getColumns(listId);
     console.log('Loaded Main Library Columns:', fieldInfos);
-    // Sort by Title
-    fieldInfos.sort((a, b) => (a.Title || a.InternalName).localeCompare(b.Title || b.InternalName));
-    this.columns = fieldInfos.map(f => ({ key: f.InternalName, text: f.Title || f.InternalName }));
+
+    // All columns (fallback)
+    this.columns = fieldInfos.map(f => ({
+      key: f.InternalName,
+      text: f.Title || f.InternalName
+    }));
+
+    // Sort
+    this.columns.sort((a, b) => a.text.localeCompare(b.text));
+
+    // Filter: Choice
+    this.choiceColumns = fieldInfos
+      .filter(f => f.TypeAsString === 'Choice' || f.TypeAsString === 'MultiChoice')
+      .map(f => ({ key: f.InternalName, text: f.Title || f.InternalName }));
+    this.choiceColumns.sort((a, b) => a.text.localeCompare(b.text));
+
+    // Filter: Text or Note (MultiLine)
+    this.textColumns = fieldInfos
+      .filter(f => f.TypeAsString === 'Text' || f.TypeAsString === 'Note')
+      .map(f => ({ key: f.InternalName, text: f.Title || f.InternalName }));
+    this.textColumns.sort((a, b) => a.text.localeCompare(b.text));
   }
 
   private async loadRequestColumns(listId: string): Promise<void> {
     const fieldInfos = await this.service.getColumns(listId);
     console.log('Loaded Request List Columns:', fieldInfos);
-    // Sort by Title
-    fieldInfos.sort((a, b) => (a.Title || a.InternalName).localeCompare(b.Title || b.InternalName));
 
-    // We might want to filter out ReadOnly for writing, but let's show all just in case
-    // to resolve the "missing column" issue.
-    // Note: We fetched ReadOnlyField property in service now. We could use it:
-    // const editableFields = fieldInfos.filter(f => !f.ReadOnlyField);
-    // But let's stick to showing all for maximum flexibility unless user complains of clutter.
+    // All columns (fallback)
+    this.requestColumns = fieldInfos.map(f => ({
+      key: f.InternalName,
+      text: f.Title || f.InternalName
+    }));
 
-    this.requestColumns = fieldInfos.map(f => ({ key: f.InternalName, text: f.Title || f.InternalName }));
+    this.requestColumns.sort((a, b) => a.text.localeCompare(b.text));
+
+    // Filter: Text or Number (simple types for ID/Email/Count)
+    this.requestSimpleColumns = fieldInfos
+      .filter(f => f.TypeAsString === 'Text' || f.TypeAsString === 'Number')
+      .map(f => ({ key: f.InternalName, text: f.Title || f.InternalName }));
+    this.requestSimpleColumns.sort((a, b) => a.text.localeCompare(b.text));
   }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
@@ -521,22 +615,22 @@ export default class DocumentListingWebPart
             }),
             PropertyPaneDropdown('categoryColumn', {
               label: 'Category Column',
-              options: this.columns,
+              options: this.choiceColumns, // Filtered
               disabled: this.columnsDropdownDisabled
             }),
             PropertyPaneDropdown('subCategoryColumn', {
               label: 'Sub Category Column',
-              options: this.columns,
+              options: this.choiceColumns, // Filtered
               disabled: this.columnsDropdownDisabled
             }),
             PropertyPaneDropdown('titleColumn', {
-              label: 'Title Field',
-              options: this.columns,
+              label: 'Title Field (Optional override)',
+              options: this.textColumns, // Filtered
               disabled: this.columnsDropdownDisabled
             }),
             PropertyPaneDropdown('descriptionColumn', {
               label: 'Description Field',
-              options: this.columns,
+              options: this.textColumns, // Filtered
               disabled: this.columnsDropdownDisabled
             }),
             PropertyPaneSlider('pageSize', {
@@ -549,31 +643,33 @@ export default class DocumentListingWebPart
           ]
         },
         {
-          groupName: 'Request Access Configuration',
+          groupName: "Request Access Configuration",
           groupFields: [
             PropertyPaneDropdown('inputListId', {
-              label: 'Requests List (Generic Lists)',
+              label: 'Requests List',
               options: this.requestLists,
               disabled: this.requestListsDropdownDisabled
             }),
             PropertyPaneDropdown('inputFieldFileId', {
               label: 'Column for File ID',
-              options: this.requestColumns,
+              options: this.requestSimpleColumns, // Filtered
               disabled: this.requestColumnsDropdownDisabled
             }),
             PropertyPaneDropdown('inputFieldEmail', {
               label: 'Column for User Email',
-              options: this.requestColumns,
+              options: this.requestSimpleColumns, // Filtered
               disabled: this.requestColumnsDropdownDisabled
             }),
             PropertyPaneDropdown('inputFieldDownloadCount', {
-              label: 'Column for Download Count',
-              options: this.requestColumns,
+              label: 'Column for Download Count (Optional)',
+              options: this.requestSimpleColumns, // Filtered
               disabled: this.requestColumnsDropdownDisabled
             })
           ]
-        }]
-      }]
+        }
+        ]
+      }
+      ]
     };
   }
 }
