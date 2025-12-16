@@ -216,7 +216,10 @@
   font-size: 24px;
   color: "[theme:themePrimary, default: #0078d4]";
   color: var(--themePrimary);
-  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
   display: inline-block;
 
   &:hover {
@@ -253,10 +256,121 @@
     cursor: default;
     opacity: 0.5;
   }
+}
 
-  &.active {
-    // Assuming you might add this active class later or use disabled for active
-    font-weight: bold;
+/* --- Search Bar --- */
+.searchContainer {
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  /* Space for icon */
+  border: 1px solid "[theme:neutralLight, default: #edebe9]";
+  border: 1px solid var(--neutralLight);
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+  outline: none;
+  background: "[theme:bodyBackground, default: #ffffff]";
+  background: var(--bodyBackground);
+  color: "[theme:bodyText, default: #323130]";
+  color: var(--bodyText);
+
+  &:focus {
+    border-color: "[theme:themePrimary, default: #0078d4]";
     border-color: var(--themePrimary);
   }
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: "[theme:neutralSecondary, default: #605e5c]";
+  color: var(--neutralSecondary);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* --- Sorting --- */
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.sortIcon {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 12px;
+}
+
+/* --- Buttons --- */
+.requestBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: "[theme:themePrimary, default: #0078d4]";
+  background-color: var(--themePrimary);
+  color: #fff;
+  border-radius: 16px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+    color: #fff;
+  }
+
+  i {
+    font-size: 14px;
+  }
+}
+
+/* --- Toast Notification --- */
+.toast {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #fff;
+  border-left: 4px solid #107c10;
+  /* Green success */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px 16px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  z-index: 1000;
+
+  /* Animation */
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  /* Click through when hidden */
+
+  i {
+    color: #107c10;
+    font-size: 18px;
+  }
+}
+
+.toastVisible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
