@@ -81,7 +81,7 @@ export default class DocumentListingWebPart
       const columnsToFetch = [
         this.properties.titleColumn,
         this.properties.descriptionColumn
-      ].filter(f => f); // Filter out empty
+      ].filter(Boolean); // Filter out empty
 
       this.items = await this.service.getDocuments(
         this.properties.library,
