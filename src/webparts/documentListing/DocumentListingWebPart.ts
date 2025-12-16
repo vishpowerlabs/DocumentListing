@@ -5,6 +5,7 @@ import {
   IPropertyPaneConfiguration,
   PropertyPaneDropdown,
   PropertyPaneSlider,
+  PropertyPaneTextField,
   IPropertyPaneDropdownOption
 } from '@microsoft/sp-property-pane';
 
@@ -42,6 +43,8 @@ export default class DocumentListingWebPart
   private requestColumnsDropdownDisabled: boolean = true;
 
   public async onInit(): Promise<void> {
+    await super.onInit();
+
     this.themeProvider = this.context.serviceScope.consume(
       ThemeProvider.serviceKey
     );
@@ -108,6 +111,7 @@ export default class DocumentListingWebPart
       }
 
       this.domElement.innerHTML = `
+        ${this.properties.webPartTitle ? `<div class="${styles.webPartHeader}">${this.properties.webPartTitle}</div>` : ''}
         <div class="${styles.container}">
           <div class="${styles.leftNav}">
             ${categories.map(c => `
@@ -123,10 +127,10 @@ export default class DocumentListingWebPart
             <div class="${styles.tableWrapper}">
               <div class="${styles.tableContainer}">
                 <div class="${styles.tableHeader}">
-                  <div class="${styles.headerCell}">Title</div>
-                  ${this.properties.descriptionColumn ? `<div class="${styles.headerCell}">Description</div>` : `<div class="${styles.headerCell}">Description</div>`}
-                  <div class="${styles.headerCell} ${styles.centerAlign}">Date Modified</div>
-                  <div class="${styles.headerCell} ${styles.centerAlign}">Request Access</div>
+                  <div class="${styles.headerCell} ${styles.colTitle}">Title</div>
+                  ${this.properties.descriptionColumn ? `<div class="${styles.headerCell} ${styles.colDesc}">Description</div>` : `<div class="${styles.headerCell} ${styles.colDesc}">Description</div>`}
+                  <div class="${styles.headerCell} ${styles.colDate}">Date</div>
+                  <div class="${styles.headerCell} ${styles.colAction}">Request Access</div>
                 </div>
                 <div id="docRows"></div>
               </div>
@@ -303,10 +307,10 @@ export default class DocumentListingWebPart
 
       return `
         <div class="${styles.tableRow}">
-          <div class="${styles.tableCell}">${displayTitle}</div>
-          <div class="${styles.tableCell}">${displayDesc}</div>
-          <div class="${styles.tableCell} ${styles.centerAlign}">${i.Modified ? new Date(i.Modified).toLocaleDateString() : ''}</div>
-          <div class="${styles.tableCell} ${styles.centerAlign}">
+          <div class="${styles.tableCell} ${styles.colTitle}">${displayTitle}</div>
+          <div class="${styles.tableCell} ${styles.colDesc}">${displayDesc}</div>
+          <div class="${styles.tableCell} ${styles.colDate}">${i.Modified ? new Date(i.Modified).toLocaleDateString() : ''}</div>
+          <div class="${styles.tableCell} ${styles.colAction}">
              <a href="javascript:void(0)"
                 class="${styles.mailIcon} request-access-btn"
                 data-id="${i.Id}">
@@ -608,6 +612,9 @@ export default class DocumentListingWebPart
         groups: [{
           groupName: 'Configuration',
           groupFields: [
+            PropertyPaneTextField('webPartTitle', {
+              label: 'Web Part Title (Header)'
+            }),
             PropertyPaneDropdown('library', {
               label: 'Document Library Name',
               options: this.lists,

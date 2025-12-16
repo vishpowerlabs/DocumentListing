@@ -37,9 +37,12 @@ export default class DocumentService {
     const url = `${this.siteUrl}/_api/web/lists?$filter=Hidden eq false and BaseTemplate eq ${baseTemplate}&$select=Id,Title`;
 
     const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
+    if (!response.ok) {
+      console.error(`Error fetching lists: ${response.statusText}`);
+      return [];
+    }
     const json = await response.json();
-
-    return json.value as IListInfo[];
+    return (json.value || []) as IListInfo[];
   }
 
   public async getColumns(listId: string): Promise<IFieldInfo[]> {
@@ -53,9 +56,13 @@ export default class DocumentService {
     }
 
     const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
+    if (!response.ok) {
+      console.error(`Error fetching columns: ${response.statusText}`);
+      return [];
+    }
     const json = await response.json();
 
-    return json.value as IFieldInfo[];
+    return (json.value || []) as IFieldInfo[];
   }
 
   public async getFieldChoices(listId: string, fieldInternalName: string): Promise<string[]> {
@@ -72,6 +79,10 @@ export default class DocumentService {
 
     try {
       const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
+      if (!response.ok) {
+        console.error(`Error fetching field choices: ${response.statusText}`);
+        return [];
+      }
       const json = await response.json();
 
       if (json.value && json.value.length > 0) {
@@ -130,6 +141,7 @@ export default class DocumentService {
     }
 
     const response: SPHttpClientResponse = await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
+    if (!response.ok) return undefined;
     const json = await response.json();
 
     return (json.value && json.value.length > 0) ? json.value[0] : undefined;
@@ -204,9 +216,15 @@ export default class DocumentService {
     const response: SPHttpClientResponse =
       await this.spHttpClient.get(url, SPHttpClient.configurations.v1);
 
-    const json = await response.json();
+    if (!response.ok) {
+      console.error(`Error fetching documents: ${response.statusText}`);
+      throw new Error(`Failed to fetch documents: ${response.statusText}`);
+    }
 
-    return json.value.map((i: Record<string, unknown>) => {
+    const json = await response.json();
+    const items = json.value || [];
+
+    return items.map((i: Record<string, unknown>) => {
       const item: IDocumentItem = {
         Title: i.Title as string,
         Category: i[categoryColumn] as string,

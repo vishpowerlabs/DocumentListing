@@ -3,8 +3,17 @@
 .documentListing {
   overflow: hidden;
   padding: 1em;
-  color: "[theme:bodyText, default: #323130]";
   color: var(--bodyText);
+}
+
+.webPartHeader {
+  background: "[theme:themePrimary, default: #0078d4]";
+  background: var(--themePrimary);
+  color: #fff;
+  padding: 12px 16px;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
 }
 
 .container {
@@ -158,17 +167,44 @@
 
 .headerCell,
 .tableCell {
-  flex: 1;
-  /* Auto width distribution */
+  /* Default cell styles */
+  /* Remove flex: 1 as base to avoid canceling out specific flex props */
+  /* If no specific class is added, you might want a default, but we are being specific now */
+
   padding: 10px 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   word-wrap: break-word;
-  /* Ensure long words wrap if needed, mainly for mobile */
+  /* Allow long words to break if wrapping */
+  /* white-space: nowrap;  <-- Removed to allow wrapping */
+  box-sizing: border-box;
 
-  /* Flexbox alignment for cells */
   display: flex;
   align-items: center;
+}
+
+.colTitle {
+  flex: 0 0 30%;
+  max-width: 30%;
+}
+
+.colDesc {
+  flex: 0 0 35%;
+  max-width: 35%;
+}
+
+.colDate {
+  flex: 0 0 15%;
+  max-width: 15%;
+  justify-content: center;
+  text-align: center;
+}
+
+.colAction {
+  flex: 0 0 20%;
+  max-width: 20%;
+  justify-content: center;
+  text-align: center;
 }
 
 .centerAlign {
