@@ -391,6 +391,46 @@ export default class DocumentListingWebPart
     await this.processAccessRequest(fileId, this.context.pageContext.user.email);
   }
 
+  private async _handleCountRequest(
+    listId: string,
+    fileIdField: string,
+    fileId: string,
+    emailField: string,
+    userEmail: string,
+    countField: string
+  ): Promise<{ createdNew: boolean; newCount: number }> {
+    // Check for existing request
+    const existingItem = await this.service.getExistingRequest(
+      listId,
+      fileIdField,
+      fileId,
+      emailField,
+      userEmail,
+      [countField]
+    );
+
+    if (existingItem) {
+      // Update existing
+      const existingVal = existingItem[countField] as string | undefined;
+      const currentCount = existingVal ? Number.parseInt(existingVal) : 0;
+      const newCount = (Number.isNaN(currentCount) ? 0 : currentCount) + 1;
+
+      await this.service.updateRequest(listId, existingItem.Id as number, {
+        [countField]: newCount
+      });
+      return { createdNew: false, newCount };
+    } else {
+      // Create new with count 1
+      const payload: Record<string, unknown> = {};
+      payload[fileIdField] = fileId;
+      payload[emailField] = userEmail;
+      payload[countField] = 1; // Start at 1
+
+      await this.service.createRequest(listId, payload);
+      return { createdNew: true, newCount: 1 };
+    }
+  }
+
   private async processAccessRequest(fileId: string | undefined, userEmail: string): Promise<void> {
     if (!fileId) {
       alert('File ID not found for request.');
@@ -403,46 +443,25 @@ export default class DocumentListingWebPart
       const emailField = this.properties.inputFieldEmail;
       const countField = this.properties.inputFieldDownloadCount;
 
-      let createdNew = false;
+      let createdNew = true;
       let newCount = 1;
 
       if (countField) {
-        // Check for existing request
-        const existingItem = await this.service.getExistingRequest(
+        const result = await this._handleCountRequest(
           listId,
           fileIdField,
           fileId,
           emailField,
           userEmail,
-          [countField]
+          countField
         );
-
-        if (existingItem) {
-          // Update existing
-          const existingVal = existingItem[countField] as string | undefined;
-          const currentCount = existingVal ? Number.parseInt(existingVal) : 0;
-          newCount = (Number.isNaN(currentCount) ? 0 : currentCount) + 1;
-
-          await this.service.updateRequest(listId, existingItem.Id as number, {
-            [countField]: newCount
-          });
-        } else {
-          // Create new with count 1
-          createdNew = true;
-          const payload: Record<string, unknown> = {};
-          payload[fileIdField] = fileId;
-          payload[emailField] = userEmail;
-          payload[countField] = 1; // Start at 1
-
-          await this.service.createRequest(listId, payload);
-        }
+        createdNew = result.createdNew;
+        newCount = result.newCount;
       } else {
         // Legacy behavior: Always create new if count field not configured
-        createdNew = true;
         const payload: Record<string, unknown> = {};
         payload[fileIdField] = fileId;
         payload[emailField] = userEmail;
-
         await this.service.createRequest(listId, payload);
       }
 
@@ -457,6 +476,7 @@ export default class DocumentListingWebPart
       alert(`Failed to submit request: ${errorMessage}`);
     }
   }
+
 
   private getErrorMessage(err: unknown): string {
     if (err instanceof Error) {
