@@ -1,77 +1,68 @@
-# document-listing
+# Document Listing Web Part
 
 ## Summary
 
-Short summary on functionality and used technologies.
+This SharePoint Framework (SPFx) web part provides a rich, categorized document listing experience. It is designed to allow users to navigate documents using a two-level hierarchy (Category and Sub-Category), search for documents, and request access to specific files. The solution integrates with a secondary list to track access requests and download counts.
 
-[picture of the solution in action, if possible]
+![Solution Mockup](assets/document_listing_mockup.png)
 
-## Used SharePoint Framework Version
+## Features
 
-![version](https://img.shields.io/badge/version-1.22.0-green.svg)
+- **Categorized Navigation**: 
+  - **Left Navigation**: Filter documents by a primary "Category" column.
+  - **Top Tabs**: Further filter documents within a category using a "Sub-Category" column.
+- **Sorting**: Sort documents by Title, Description, or Modified Date (defaulting to Modified Date Descending).
+- **Pagination**: Configurable pagination to manage large sets of documents (default 10 items per page).
+- **Request Access Workflow**:
+  - Users can click a "Request Access" (mail icon) button on any document.
+  - Requests are logged to a configured SharePoint List.
+  - Supports tracking request counts (incrementing a counter if the user requests the same file multiple times).
+  - Toast notifications provide immediate feedback on request status.
+- **Theme Awareness**: The web part automatically adapts to the current SharePoint site theme.
 
-## Applies to
+## Configuration
 
-- [SharePoint Framework](https://aka.ms/spfx)
-- [Microsoft 365 tenant](https://docs.microsoft.com/sharepoint/dev/spfx/set-up-your-developer-tenant)
+The web part is fully configurable via the Property Pane.
 
-> Get your own free development tenant by subscribing to [Microsoft 365 developer program](http://aka.ms/o365devprogram)
+![Configuration Pane Mockup](assets/webpart_configuration_mockup.png)
+
+### 1. General Configuration
+- **Web Part Title**: The header text displayed at the top of the web part.
+- **Document Library Name**: Select the source Document Library (must be a library, template 101).
+- **Category Column**: Select the Choice column to use for the left-hand navigation.
+- **Sub Category Column**: Select the Choice column to use for the top tab navigation.
+- **Title Field**: (Optional) specific text column to display as the document title.
+- **Description Field**: (Optional) specific text column to display as the document description.
+- **Max Rows per Page**: Slider to set the number of items per page (Range: 5-100, Default: 10).
+
+### 2. Request Access Configuration
+To enable the "Request Access" feature, you must have a separate generic SharePoint List (template 100) created to store the requests.
+
+- **Requests List**: Select the generic list to store access requests.
+- **Column for File ID**: Select a Text or Number column in the Requests List to store the ID of the requested file.
+- **Column for User Email**: Select a Text column in the Requests List to store the requester's email address.
+- **Column for Download Count**: (Optional) Select a Number column to track how many times a user has requested a file. If configured, the system will increment existing requests instead of creating new duplicates.
 
 ## Prerequisites
 
-> Any special pre-requisites?
-
-## Solution
-
-| Solution    | Author(s)                                               |
-| ----------- | ------------------------------------------------------- |
-| folder name | Author details (name, company, twitter alias with link) |
-
-## Version history
-
-| Version | Date             | Comments        |
-| ------- | ---------------- | --------------- |
-| 1.1     | March 10, 2021   | Update comment  |
-| 1.0     | January 29, 2021 | Initial release |
-
-## Disclaimer
-
-**THIS CODE IS PROVIDED _AS IS_ WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
-
----
+- **SharePoint Online** Tenant.
+- **Source Document Library**: A library with columns for Category and Sub-Category.
+- **Request Tracking List**: A generic list with columns for File ID, Email, and optionally Count.
 
 ## Minimal Path to Awesome
 
 - Clone this repository
 - Ensure that you are at the solution folder
 - in the command-line run:
-  - `npm install -g @rushstack/heft`
   - `npm install`
-  - `heft start`
+  - `gulp serve`
 
-> Include any additional steps as needed.
+## Version history
 
-Other build commands can be listed using `heft --help`.
+| Version | Date             | Comments        |
+| ------- | ---------------- | --------------- |
+| 1.0     | 2025-12-31       | Initial Documentation Update |
 
-## Features
+## Disclaimer
 
-Description of the extension that expands upon high-level summary above.
-
-This extension illustrates the following concepts:
-
-- topic 1
-- topic 2
-- topic 3
-
-> Notice that better pictures and documentation will increase the sample usage and the value you are providing for others. Thanks for your submissions advance.
-
-> Share your web part with others through Microsoft 365 Patterns and Practices program to get visibility and exposure. More details on the community, open-source projects and other activities from http://aka.ms/m365pnp.
-
-## References
-
-- [Getting started with SharePoint Framework](https://docs.microsoft.com/sharepoint/dev/spfx/set-up-your-developer-tenant)
-- [Building for Microsoft teams](https://docs.microsoft.com/sharepoint/dev/spfx/build-for-teams-overview)
-- [Use Microsoft Graph in your solution](https://docs.microsoft.com/sharepoint/dev/spfx/web-parts/get-started/using-microsoft-graph-apis)
-- [Publish SharePoint Framework applications to the Marketplace](https://docs.microsoft.com/sharepoint/dev/spfx/publish-to-marketplace-overview)
-- [Microsoft 365 Patterns and Practices](https://aka.ms/m365pnp) - Guidance, tooling, samples and open-source controls for your Microsoft 365 development
-- [Heft Documentation](https://heft.rushstack.io/)
+**THIS CODE IS PROVIDED _AS IS_ WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
